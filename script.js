@@ -110,96 +110,183 @@
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let selectedIdea = "";
   const fogGlass = document.getElementById("fogGlass");
-  const fogMaskSvg = document.getElementById("fogMaskSvg");
-  const fogMask = document.getElementById("fogWipeMask");
-  const fogMaskBase = document.getElementById("fogMaskBase");
-  const fogWipes = document.getElementById("fogWipes");
+  const fogLabel = document.querySelector(".fog-label");
+  const fogContext = fogGlass?.getContext("2d", { alpha: true });
   const fogPointers = new Map();
-  const svgNamespace = "http://www.w3.org/2000/svg";
-  const supportsFogMask = Boolean(window.CSS?.supports && (
-    window.CSS.supports("mask-image", "url(#fogWipeMask)") ||
-    window.CSS.supports("-webkit-mask-image", "url(#fogWipeMask)")
-  ));
+  let fogCanvasWidth = 0;
+  let fogCanvasHeight = 0;
+  let fogCanvasRatio = 1;
   let fogVisible = false;
   let activeScreen = intro;
 
-  function resizeFogMask() {
-    if (!fogMaskSvg || !fogMask || !fogMaskBase) return;
-    const width = Math.max(1, window.innerWidth);
-    const height = Math.max(1, window.innerHeight);
-    fogMaskSvg.setAttribute("width", String(width));
-    fogMaskSvg.setAttribute("height", String(height));
-    fogMaskSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    fogMask.setAttribute("x", "0");
-    fogMask.setAttribute("y", "0");
-    fogMask.setAttribute("width", String(width));
-    fogMask.setAttribute("height", String(height));
-    fogMaskBase.setAttribute("width", String(width));
-    fogMaskBase.setAttribute("height", String(height));
+  function drawFogSurface(width, height) {
+    fogContext.clearRect(0, 0, width, height);
+
+    const wash = fogContext.createLinearGradient(0, 0, width, height);
+    wash.addColorStop(0, "rgba(238, 218, 241, .60)");
+    wash.addColorStop(.48, "rgba(211, 190, 226, .54)");
+    wash.addColorStop(1, "rgba(247, 226, 241, .60)");
+    fogContext.fillStyle = wash;
+    fogContext.fillRect(0, 0, width, height);
+
+    const hazeSpots = [
+      [.17, .24, .39, "rgba(255,255,255,.34)"],
+      [.77, .68, .43, "rgba(236,214,246,.34)"],
+      [.51, .47, .28, "rgba(255,244,251,.17)"]
+    ];
+    hazeSpots.forEach(([x, y, spread, color]) => {
+      const radius = Math.max(width, height) * spread;
+      const haze = fogContext.createRadialGradient(width * x, height * y, 0, width * x, height * y, radius);
+      haze.addColorStop(0, color);
+      haze.addColorStop(1, "rgba(255,255,255,0)");
+      fogContext.fillStyle = haze;
+      fogContext.fillRect(0, 0, width, height);
+    });
+
+    fogContext.save();
+    fogContext.globalAlpha = .22;
+    for (let i = 0; i < 125; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const radius = 1 + Math.random() * 2.5;
+      fogContext.fillStyle = i % 3 === 0 ? "#ffffff" : "#f2dff2";
+      fogContext.beginPath();
+      fogContext.ellipse(x, y, radius * .7, radius * 1.5, 0, 0, Math.PI * 2);
+      fogContext.fill();
+    }
+    fogContext.restore();
+  }
+
+  function resizeFogMask(reset = false) {
+    if (!fogGlass || !fogContext) return;
+    const bounds = fogGlass.getBoundingClientRect();
+    const width = Math.max(1, bounds.width);
+    const height = Math.max(1, bounds.height);
+    const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+    const pixelWidth = Math.max(1, Math.round(width * ratio));
+    const pixelHeight = Math.max(1, Math.round(height * ratio));
+    if (!reset && fogGlass.width === pixelWidth && fogGlass.height === pixelHeight && fogCanvasRatio === ratio) return;
+
+    let previousCanvas = null;
+    if (!reset && fogCanvasWidth && fogCanvasHeight) {
+      previousCanvas = document.createElement("canvas");
+      previousCanvas.width = fogGlass.width;
+      previousCanvas.height = fogGlass.height;
+      previousCanvas.getContext("2d")?.drawImage(fogGlass, 0, 0);
+    }
+
+    fogGlass.width = pixelWidth;
+    fogGlass.height = pixelHeight;
+    fogCanvasWidth = width;
+    fogCanvasHeight = height;
+    fogCanvasRatio = ratio;
+    fogContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+    if (previousCanvas) {
+      fogContext.drawImage(previousCanvas, 0, 0, previousCanvas.width, previousCanvas.height, 0, 0, width, height);
+    } else {
+      drawFogSurface(width, height);
+    }
   }
 
   function setFogVisible(visible) {
-    fogVisible = Boolean(visible && !reducedMotion.matches && supportsFogMask && fogGlass);
+    const nextVisible = Boolean(visible && fogGlass && fogLabel && fogContext);
+    if (nextVisible && !fogVisible) {
+      resizeFogMask(true);
+      document.body.classList.remove("fog-wiping");
+    }
+    fogVisible = nextVisible;
     document.body.classList.toggle("fog-active", fogVisible);
     if (fogGlass) fogGlass.setAttribute("aria-hidden", String(!fogVisible));
-    if (!fogVisible) fogPointers.clear();
+    if (!fogVisible) {
+      fogPointers.clear();
+      document.body.classList.remove("fog-wiping");
+    }
   }
 
   function brushRadius() {
     return Math.max(48, Math.min(88, Math.min(window.innerWidth, window.innerHeight) * .11));
   }
 
-  function startFogWipe(event) {
-    if (!fogVisible || !fogWipes) return null;
-    const x = event.clientX;
-    const y = event.clientY;
-    const radius = brushRadius();
-    const circle = document.createElementNS(svgNamespace, "circle");
-    circle.setAttribute("cx", String(x));
-    circle.setAttribute("cy", String(y));
-    circle.setAttribute("r", String(radius));
-    fogWipes.append(circle);
+  function eraseFogPoint(x, y, radius) {
+    fogContext.save();
+    fogContext.globalCompositeOperation = "destination-out";
+    fogContext.beginPath();
+    fogContext.arc(x, y, radius, 0, Math.PI * 2);
+    fogContext.fill();
+    fogContext.restore();
+    document.body.classList.add("fog-wiping");
+  }
 
-    const path = document.createElementNS(svgNamespace, "path");
-    path.setAttribute("d", `M ${x} ${y}`);
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke-width", String(radius * 2));
-    fogWipes.append(path);
-    const state = { path, d: `M ${x} ${y}`, x, y };
-    fogPointers.set(event.pointerId, state);
+  function beginFogWipe(pointerId, x, y, pointerType, preventScroll = false) {
+    if (!fogVisible) return null;
+    const bounds = fogGlass.getBoundingClientRect();
+    x -= bounds.left;
+    y -= bounds.top;
+    const state = { x, y, radius: brushRadius(), preventScroll };
+    fogPointers.set(pointerId, state);
+    eraseFogPoint(x, y, state.radius);
     return state;
   }
 
-  function moveFogWipe(event) {
+  function continueFogWipe(pointerId, x, y, pointerType) {
     if (!fogVisible) return;
-    let state = fogPointers.get(event.pointerId);
-    if (!state && event.pointerType === "mouse") state = startFogWipe(event);
+    let state = fogPointers.get(pointerId);
+    if (!state && pointerType === "mouse") {
+      beginFogWipe(pointerId, x, y, pointerType);
+      return;
+    }
     if (!state) return;
-    const dx = event.clientX - state.x;
-    const dy = event.clientY - state.y;
+    const bounds = fogGlass.getBoundingClientRect();
+    x -= bounds.left;
+    y -= bounds.top;
+    const dx = x - state.x;
+    const dy = y - state.y;
     if (dx * dx + dy * dy < 25) return;
-    state.d += ` L ${event.clientX} ${event.clientY}`;
-    state.path.setAttribute("d", state.d);
-    state.x = event.clientX;
-    state.y = event.clientY;
+    fogContext.save();
+    fogContext.globalCompositeOperation = "destination-out";
+    fogContext.lineWidth = state.radius * 2;
+    fogContext.lineCap = "round";
+    fogContext.lineJoin = "round";
+    fogContext.beginPath();
+    fogContext.moveTo(state.x, state.y);
+    fogContext.lineTo(x, y);
+    fogContext.stroke();
+    fogContext.restore();
+    state.x = x;
+    state.y = y;
   }
 
-  resizeFogMask();
   setFogVisible(true);
   window.addEventListener("resize", resizeFogMask, { passive: true });
-  window.addEventListener("pointerdown", event => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    startFogWipe(event);
-  }, { passive: true });
-  window.addEventListener("pointermove", moveFogWipe, { passive: true });
-  window.addEventListener("pointerup", event => fogPointers.delete(event.pointerId), { passive: true });
-  window.addEventListener("pointercancel", event => fogPointers.delete(event.pointerId), { passive: true });
-  window.addEventListener("pointerleave", event => {
-    if (event.pointerType === "mouse") fogPointers.delete(event.pointerId);
-  }, { passive: true });
-  const updateFogMotionPreference = () => setFogVisible(activeScreen === intro);
-  reducedMotion.addEventListener?.("change", updateFogMotionPreference);
-  if (!reducedMotion.addEventListener) reducedMotion.addListener(updateFogMotionPreference);
+  if (window.PointerEvent) {
+    window.addEventListener("pointerdown", event => {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      beginFogWipe(event.pointerId, event.clientX, event.clientY, event.pointerType);
+    }, { passive: true });
+    window.addEventListener("pointermove", event => {
+      continueFogWipe(event.pointerId, event.clientX, event.clientY, event.pointerType);
+    }, { passive: true });
+    window.addEventListener("pointerup", event => fogPointers.delete(event.pointerId), { passive: true });
+    window.addEventListener("pointercancel", event => fogPointers.delete(event.pointerId), { passive: true });
+    window.addEventListener("pointerleave", event => {
+      if (event.pointerType === "mouse") fogPointers.delete(event.pointerId);
+    }, { passive: true });
+  } else {
+    window.addEventListener("mousedown", event => {
+      if (event.button === 0) beginFogWipe("mouse", event.clientX, event.clientY, "mouse");
+    }, { passive: true });
+    window.addEventListener("mousemove", event => continueFogWipe("mouse", event.clientX, event.clientY, "mouse"), { passive: true });
+    window.addEventListener("mouseup", () => fogPointers.delete("mouse"), { passive: true });
+    window.addEventListener("touchstart", event => {
+      [...event.changedTouches].forEach(touch => beginFogWipe(touch.identifier, touch.clientX, touch.clientY, "touch", Boolean(event.target.closest?.(".intro-card"))));
+    }, { passive: true });
+    window.addEventListener("touchmove", event => {
+      [...event.changedTouches].forEach(touch => continueFogWipe(touch.identifier, touch.clientX, touch.clientY, "touch"));
+      if ([...event.changedTouches].some(touch => fogPointers.get(touch.identifier)?.preventScroll) && event.cancelable) event.preventDefault();
+    }, { passive: false });
+    window.addEventListener("touchend", event => [...event.changedTouches].forEach(touch => fogPointers.delete(touch.identifier)), { passive: true });
+    window.addEventListener("touchcancel", event => [...event.changedTouches].forEach(touch => fogPointers.delete(touch.identifier)), { passive: true });
+  }
 
   function localDateString(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
