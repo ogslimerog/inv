@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#21172d">
+  <meta name="description" content="Маленькое приглашение провести время вместе. Без спешки и давления — только если тебе этого хочется.">
+  <title>У меня к тебе вопрос 💌</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="video-background" id="videoBackground" aria-hidden="true">
+    <video id="backgroundVideo" autoplay muted loop playsinline preload="metadata">
+      <source id="backgroundVideoSource" src="background-landscape-pingpong.mp4" type="video/mp4">
+    </video>
+    <div class="video-overlay"></div>
+  </div>
+  <div class="aurora aurora-one" aria-hidden="true"></div>
+  <div class="aurora aurora-two" aria-hidden="true"></div>
+  <div class="starfield" aria-hidden="true"></div>
+  <div class="floating-hearts" id="floatingHearts" aria-hidden="true"></div>
+  <div class="petal-layer" id="petalLayer" aria-hidden="true"></div>
+  <div class="butterfly-layer" id="butterflyLayer" aria-hidden="true"></div>
+  <div class="interaction-effects-layer" id="interactionEffects" aria-hidden="true"></div>
+
+  <svg class="fog-mask-definitions" id="fogMaskSvg" aria-hidden="true" focusable="false">
+    <defs>
+      <mask id="fogWipeMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" style="mask-type: luminance">
+        <rect id="fogMaskBase" fill="white"></rect>
+        <g id="fogWipes" fill="black" stroke="black" stroke-linecap="round" stroke-linejoin="round"></g>
+      </mask>
+    </defs>
+  </svg>
+  <div class="fog-glass" id="fogGlass" aria-hidden="true"></div>
+  <div class="fog-label" aria-hidden="true">Протри меня</div>
+
+  <main class="page-shell">
+    <section class="card intro-card" id="intro" aria-labelledby="introTitle">
+      <div class="card-glow" aria-hidden="true"></div>
+      <div class="card-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="eyebrow"><span class="eyebrow-star">✦</span> маленькое приглашение <span class="eyebrow-star">✦</span></div>
+      <div class="hero-seal" aria-hidden="true">
+        <span class="seal-orbit seal-orbit-one"></span>
+        <span class="seal-orbit seal-orbit-two"></span>
+        <span class="seal-spark seal-spark-one">✧</span><span class="seal-spark seal-spark-two">✦</span>
+        <span class="seal-icon">💌</span>
+      </div>
+      <p class="script-line">У меня к тебе...</p>
+      <h1 id="introTitle">один важный<br><span>вопрос</span></h1>
+      <p class="intro-lead">Я тут подумал, что было бы здорово провести время вместе. Спокойно, легко и без сложных планов.</p>
+      <div class="question">Пойдёшь со мной на свидание? <span aria-hidden="true">🥹</span></div>
+      <div class="answer-actions">
+        <button class="button button-yes" id="yesBtn" type="button"><span>Да, с удовольствием</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+        <button class="button button-no" id="noBtn" type="button" aria-live="polite">Нет, спасибо</button>
+      </div>
+      <p class="tiny-note"><span aria-hidden="true">✧</span> Правильного ответа нет — главное, чтобы тебе было комфортно.</p>
+    </section>
+
+    <section class="card planner-card hidden" id="planner" aria-labelledby="plannerTitle">
+      <div class="stepper" aria-label="Шаг 1 из 2">
+        <div class="step active"><span class="step-number">01</span><span>Выбрать настроение</span></div>
+        <span class="step-line" aria-hidden="true"></span>
+        <div class="step"><span class="step-number">02</span><span>Договориться</span></div>
+      </div>
+      <div class="section-heading">
+        <div class="mini-flower" aria-hidden="true">✿</div>
+        <p class="script-line">Ура, я очень рад 💗</p>
+        <h2 id="plannerTitle" tabindex="-1">Давай выберем<br><span>наш план</span></h2>
+        <p>Какое свидание тебе ближе?</p>
+      </div>
+
+      <div class="date-options" role="group" aria-label="Идея свидания">
+        <button class="date-option" type="button" data-idea="Кофе" aria-pressed="false"><span class="option-icon" aria-hidden="true">☕</span><strong>Кофе</strong><small>поболтать обо всём</small></button>
+        <button class="date-option" type="button" data-idea="Прогулка" aria-pressed="false"><span class="option-icon" aria-hidden="true">🌆</span><strong>Прогулка</strong><small>свежий воздух и мы</small></button>
+        <button class="date-option" type="button" data-idea="Кино" aria-pressed="false"><span class="option-icon" aria-hidden="true">🍿</span><strong>Кино</strong><small>выберем что-нибудь</small></button>
+      </div>
+
+      <div class="planner-fields">
+        <div class="field-grid">
+          <label class="field" for="dateInput"><span>Когда тебе удобно?</span><input id="dateInput" type="date" aria-describedby="dateHint"></label>
+          <label class="field" for="timeInput"><span>Во сколько?</span>
+            <select id="timeInput">
+              <option value="">Договоримся вместе</option>
+              <option>12:00</option><option>13:00</option><option>14:00</option><option>15:00</option>
+              <option>16:00</option><option>17:00</option><option>18:00</option><option>19:00</option><option>20:00</option>
+            </select>
+          </label>
+        </div>
+        <label class="field note-field" for="noteInput"><span>Может, у тебя есть свой вариант? <small>необязательно</small></span>
+          <textarea id="noteInput" rows="2" maxlength="240" placeholder="Другое место, время или идея…"></textarea>
+        </label>
+        <p class="field-hint" id="dateHint"><span aria-hidden="true">✧</span> Дату и время можно обсудить и поменять — это только идея.</p>
+      </div>
+      <div class="planner-actions">
+        <button class="button button-back" id="backBtn" type="button"><span aria-hidden="true">←</span> Назад</button>
+        <button class="button button-yes" id="confirmBtn" type="button"><span>Это наш план</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+      </div>
+      <p class="form-error" id="formError" role="alert" aria-live="polite"></p>
+      <div class="planner-footnote"><span>♡</span> Без спешки. Всё можно решить вместе.</div>
+    </section>
+
+    <section class="card bonus-card hidden" id="bonus" aria-labelledby="bonusTitle">
+      <div class="bonus-heading">
+        <div class="bonus-mark" aria-hidden="true">✦</div>
+        <p class="script-line">маленький бонус</p>
+        <h2 id="bonusTitle" tabindex="-1">Секретный<br><span>вопрос</span></h2>
+        <p class="bonus-question">На какой фильм мы ходили первый раз вдвоём?</p>
+      </div>
+      <form class="bonus-answer-form" id="bonusForm">
+        <label class="bonus-answer-label" for="bonusAnswer">Напиши название фильма</label>
+        <div class="bonus-answer-controls">
+          <input id="bonusAnswer" name="answer" type="text" maxlength="80" autocomplete="off" autocapitalize="sentences" spellcheck="false" placeholder="Название фильма…" aria-describedby="bonusFeedback" enterkeyhint="go">
+          <button class="button button-yes bonus-check-button" id="bonusCheckBtn" type="submit"><span>Проверить</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+        </div>
+      </form>
+      <p class="bonus-feedback" id="bonusFeedback" role="status" aria-live="polite">Угадай ответ — и откроется маленький сюрприз ✨</p>
+      <div class="bonus-result" id="bonusResult" role="status" aria-live="polite" hidden>
+        <p class="bonus-result-message">Три попытки закончились 😅 А что было в секретном вопросе — останется загадкой 🤫</p>
+        <button class="button button-yes bonus-share-button" id="bonusShareBtn" type="button"><span>Поделиться результатом в Telegram</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+      </div>
+      <div class="bonus-reveal" id="bonusReveal" hidden>
+        <div class="bonus-photo-frame">
+          <canvas id="bonusCanvas" role="img" aria-label="Фото-сюрприз постепенно собирается из пикселей"></canvas>
+        </div>
+        <p class="bonus-caption">Вот он, твой маленький сюрприз ✧</p>
+      </div>
+      <div class="bonus-actions">
+        <button class="button button-back" id="bonusBackBtn" type="button"><span aria-hidden="true">←</span> Вернуться к плану</button>
+        <button class="button button-yes" id="bonusContinueBtn" type="button" hidden><span>Открыть наш план</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+      </div>
+    </section>
+
+    <section class="card final-card hidden" id="final" aria-labelledby="finalTitle">
+      <div class="stepper" aria-label="Шаг 2 из 2">
+        <div class="step complete"><span class="step-number">01</span><span>Выбрать настроение</span></div>
+        <span class="step-line complete" aria-hidden="true"></span>
+        <div class="step active"><span class="step-number">02</span><span>Договориться</span></div>
+      </div>
+      <div class="final-heading">
+        <div class="confetti-mark" aria-hidden="true"><span>✦</span><span>♡</span><span>✧</span></div>
+        <p class="script-line">Кажется, у нас намечается...</p>
+        <h2 id="finalTitle" tabindex="-1">маленькое<br><span>приключение!</span></h2>
+        <p>Я уже радуюсь. Вот наш план — детали всегда можно обсудить.</p>
+      </div>
+      <div class="summary" id="summary" aria-label="Наш план"></div>
+      <p class="final-note">Буду очень рад провести это время с тобой <span aria-hidden="true">💗</span></p>
+      <div class="final-actions">
+        <button class="button button-yes button-share" id="sendBtn" type="button"><span>Ответить в Telegram</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+        <button class="button button-copy" id="copyBtn" type="button"><span aria-hidden="true">▢</span> Скопировать ответ</button>
+      </div>
+      <p class="share-hint" id="telegramHint" aria-live="polite">Откроется выбор чата — останется нажать «Отправить».</p>
+      <button class="text-button" id="editBtn" type="button">Изменить план</button>
+      <p class="copy-status" id="copyStatus" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card decline-card hidden" id="decline" aria-labelledby="declineTitle">
+      <div class="decline-heart" aria-hidden="true">♡</div>
+      <p class="script-line">Спасибо, что ответила честно</p>
+      <h2 id="declineTitle" tabindex="-1">Всё <span>хорошо.</span></h2>
+      <p>Твоё «нет» — совершенно нормальный ответ. Никакого давления и никаких обид. Береги себя 🌷</p>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
