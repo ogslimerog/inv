@@ -297,6 +297,7 @@
   function showScreen(screen, headingId) {
     activeScreen = screen;
     screens.forEach(item => item.classList.toggle("hidden", item !== screen));
+    document.body.classList.toggle("intro-active", screen === intro);
     setFogVisible(screen === intro);
     window.scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
     if (headingId) document.getElementById(headingId).focus({ preventScroll: true });
